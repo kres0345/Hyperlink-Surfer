@@ -8,11 +8,14 @@ import urllib3
 pp = pprint.PrettyPrinter(indent=1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-domain = "https://en.wikipedia.org/wiki/"
-initial_article = "Vince_Evans"
-end_article = "Modern_history_of_American_football"
-max_articles_per_page = 30
-max_depth = 5
+
+class CONFIG(object):
+    domain = "https://en.wikipedia.org/wiki/"
+    initial_subpage = "Vince_Evans"
+    end_subpage = "Modern_history_of_American_football"
+    max_links_per_page = 30
+    # max_depth = 5  # Not sure how to implement :/
+
 
 global wikipedia_tree, known_articles
 wikipedia_tree = {}
@@ -35,7 +38,7 @@ def get_links(article: str, path: list, http_manager: urllib3.PoolManager):
     if article in known_articles:
         return known_articles[article]
 
-    res = http_manager.request('GET', domain + article)
+    res = http_manager.request('GET', CONFIG.domain + article)
     if res.status != 200:
         print("bad request")
         return []
@@ -54,16 +57,16 @@ def get_links(article: str, path: list, http_manager: urllib3.PoolManager):
     href_list = list(dict.fromkeys(element.get('href')[6:] for element in all_links))
 
     if len(soup.find_all('a',
-                         href=f'/wiki/{end_article}',
+                         href=f'/wiki/{CONFIG.end_subpage}',
                          title=True,
                          attrs={'class': None, 'id': None, 'rel': None})
            ) != 0:
-        print("Found the target article, the path is: " + ' / '.join(path + [end_article]))
+        print("Found the target article, the path is: " + ' / '.join(path + [CONFIG.end_subpage]))
 
-    if max_articles_per_page == 0:
+    if CONFIG.max_links_per_page == 0:
         links_to_add = len(href_list)
     else:
-        links_to_add = min(len(href_list), max_articles_per_page)
+        links_to_add = min(len(href_list), CONFIG.max_links_per_page)
 
     known_articles[article] = href_list[:links_to_add]
 
@@ -86,7 +89,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 http = urllib3.PoolManager()
-queue = [(initial_article, [initial_article])]
+queue = [(CONFIG.initial_subpage, [CONFIG.initial_subpage])]
 
 running = True
 while 0 < len(queue) and running:
