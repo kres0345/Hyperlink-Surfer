@@ -17,22 +17,23 @@ class CONFIG(object):
     # max_depth = 5  # Not sure how to implement :/
 
 
-global wikipedia_tree, known_articles
 wikipedia_tree = {}
 known_articles = {}
 
 
+# Not mine, from SO
 def get_from_dict(dictionary: dict, path: list) -> dict:
     return reduce(operator.getitem, path, dictionary)
 
 
+# Not mine, from SO
 def set_in_dict(dictionary: dict, path: list, value):
     for key in path[:-1]:
         dictionary = dictionary.setdefault(key, {})
     dictionary[path[-1]] = value
 
 
-def get_links(article: str, path: list, http_manager: urllib3.PoolManager):
+def get_article_links(article: str, path: list, http_manager: urllib3.PoolManager):
     global wikipedia_tree, known_articles
 
     if article in known_articles:
@@ -40,7 +41,7 @@ def get_links(article: str, path: list, http_manager: urllib3.PoolManager):
 
     res = http_manager.request('GET', CONFIG.domain + article)
     if res.status != 200:
-        print("bad request")
+        print("Bad request")
         return []
 
     soup = BeautifulSoup(res.data, "html.parser")
@@ -93,12 +94,12 @@ queue = [(CONFIG.initial_subpage, [CONFIG.initial_subpage])]
 
 running = True
 while 0 < len(queue) and running:
-    new_links = get_links(queue[0][0], queue[0][1], http)
     print("Path: " + '/'.join(queue[0][1]))
-    for i in range(len(new_links)):
+
+    for link in get_article_links(queue[0][0], queue[0][1], http):
         queue.append((
-            new_links[i],
-            queue[0][1] + [new_links[i]]
+            link,
+            queue[0][1] + [link]
         ))
     queue.pop(0)
 
